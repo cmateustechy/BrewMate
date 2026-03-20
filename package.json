@@ -1,6 +1,6 @@
 {
   "name": "pantry",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Pantry - A modern package manager GUI for macOS",
   "author": "Roman Kurnovskii",
   "main": "dist/index.js",
