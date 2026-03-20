@@ -214,6 +214,7 @@ function setupEventListeners(): void {
       btn.classList.add('active');
       visibleStartIndex = 0;
       appsGrid.scrollTop = 0;
+      renderCategories(); // re-compute Installed count for the new type
       filterApps();
     });
   });
@@ -427,6 +428,14 @@ function loadData(): void {
 }
 
 function renderCategories(): void {
+  // Count installed apps that match the current type filter
+  const installedCount =
+    selectedType === 'All'
+      ? installedApps.size
+      : allApps.filter(
+          (app) => installedApps.has(app.name) && app.type === selectedType,
+        ).length;
+
   categoryChips.innerHTML = CATEGORIES.map((cat) => {
     const isInstalled = cat === 'Installed';
     const isActive = selectedCategory === cat;
@@ -434,7 +443,7 @@ function renderCategories(): void {
       <button class="category-chip ${isInstalled ? 'installed-category' : ''} ${isActive ? 'active' : ''
       }" 
               data-category="${cat}">
-        ${cat}${isInstalled ? ' (' + installedApps.size + ')' : ''}
+        ${cat}${isInstalled ? ' (' + installedCount + ')' : ''}
       </button>
     `;
   }).join('');
