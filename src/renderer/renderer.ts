@@ -40,7 +40,7 @@ interface App {
 // Immediate console log to verify script is loading
 console.log('[Renderer] renderer.ts script loaded');
 
-const electronAPI = (window as any).electronAPI;
+const electronAPI = (window as any).pantryAPI;
 
 // State
 let allApps: Array<App> = [];

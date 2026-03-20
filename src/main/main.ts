@@ -26,6 +26,11 @@ function createWindow(): void {
     mainWindow.webContents.openDevTools();
   }
 
+  // Forward console messages
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log(`[Renderer Console ${level}] ${message} (line: ${line})`);
+  });
+
   mainWindow.loadFile(htmlPath);
 
   mainWindow.on('closed', () => {

@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-contextBridge.exposeInMainWorld('electronAPI', {
+contextBridge.exposeInMainWorld('pantryAPI', {
   // Methods
   getVersionInfo: () => ipcRenderer.send('get-version-info'),
   getAllApps: () => ipcRenderer.send('get-all-apps'),
