@@ -120,18 +120,20 @@ export function setupIpcHandlers(): void {
   ipcMain.on(
     'install-app',
     (event: IpcMainEvent, appName: string, appType: string) => {
-      const command =
+      const args =
         appType === 'cask'
-          ? `brew install --cask --no-quarantine --force ${appName}`
-          : `brew install ${appName}`;
+          ? ['install', '--cask', '--no-quarantine', '--force', appName]
+          : ['install', appName];
+
+      const commandString = `brew ${args.join(' ')}`;
 
       console.log('[IPC] Installing app:', appName, appType);
       let output = '';
-      logCommand(command);
-      console.log('[IPC] Command logged:', command);
+      logCommand(commandString);
+      console.log('[IPC] Command logged:', commandString);
 
-      const shell = spawn(command, [], {
-        shell: true,
+      const shell = spawn('brew', args, {
+        shell: false,
         cwd: process.env.HOME || process.cwd(),
         env: getEnvWithBrewPath(),
       });
@@ -149,7 +151,7 @@ export function setupIpcHandlers(): void {
       });
 
       shell.on('close', (code) => {
-        logCommand(command, output, code);
+        logCommand(commandString, output, code);
         event.reply('install-complete', { appName, success: code === 0 });
         event.reply('terminal-output', `\nProcess exited with code ${code}\n`);
       });
@@ -160,16 +162,18 @@ export function setupIpcHandlers(): void {
   ipcMain.on(
     'uninstall-app',
     (event: IpcMainEvent, appName: string, appType: string) => {
-      const command =
+      const args =
         appType === 'cask'
-          ? `brew uninstall --cask --force ${appName}`
-          : `brew uninstall --force ${appName}`;
+          ? ['uninstall', '--cask', '--force', appName]
+          : ['uninstall', '--force', appName];
+
+      const commandString = `brew ${args.join(' ')}`;
 
       let output = '';
-      logCommand(command);
+      logCommand(commandString);
 
-      const shell = spawn(command, [], {
-        shell: true,
+      const shell = spawn('brew', args, {
+        shell: false,
         cwd: process.env.HOME || process.cwd(),
         env: getEnvWithBrewPath(),
       });
@@ -187,7 +191,7 @@ export function setupIpcHandlers(): void {
       });
 
       shell.on('close', (code) => {
-        logCommand(command, output, code);
+        logCommand(commandString, output, code);
         event.reply('uninstall-complete', { appName, success: code === 0 });
         event.reply('terminal-output', `\nProcess exited with code ${code}\n`);
       });
@@ -282,12 +286,31 @@ export function setupIpcHandlers(): void {
   // Handle command execution
   ipcMain.on('execute-command', (event: IpcMainEvent, command: string) => {
     console.log('[IPC] Executing command:', command);
+
+    const allowedCommands = [
+      'brew update',
+      'brew upgrade',
+      'brew list',
+      'brew doctor',
+      'brew cleanup',
+    ];
+
+    if (!allowedCommands.includes(command.trim())) {
+      console.error('[IPC] Command not allowed:', command);
+      event.reply('terminal-output', `\nError: Command not allowed. Only the following commands are permitted: ${allowedCommands.join(', ')}\n`);
+      return;
+    }
+
     let output = '';
     logCommand(command);
     console.log('[IPC] Command logged:', command);
 
-    const shell = spawn(command, [], {
-      shell: true,
+    const parts = command.trim().split(' ');
+    const executable = parts[0];
+    const args = parts.slice(1);
+
+    const shell = spawn(executable, args, {
+      shell: false,
       cwd: process.env.HOME || process.cwd(),
       env: getEnvWithBrewPath(),
     });
