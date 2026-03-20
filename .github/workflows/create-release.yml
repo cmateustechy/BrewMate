@@ -8,6 +8,15 @@ on:
       - 'package.json'
   release:
     types: [created]
+  workflow_call:
+    secrets:
+      GH_TOKEN:
+        required: false
+      TOKEN_HOMEBREW_CASK:
+        required: false
+
+env:
+  VERSION: ''
 
 jobs:
   create-release:

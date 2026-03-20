@@ -1,7 +1,6 @@
 import { getInstalledApps } from '../brew';
 import { getEnvWithBrewPath } from '../path';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+
 
 // Mock child_process module
 jest.mock('child_process', () => ({

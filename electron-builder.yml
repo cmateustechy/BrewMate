@@ -22,7 +22,7 @@ files:
   - '!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}'
 
 extraMetadata:
-  main: index.js
+  main: dist/index.js
 
 extraFiles:
   - from: dist/assets

@@ -13,7 +13,7 @@ jest.mock('fs', () => ({
 }));
 
 describe('cache utilities', () => {
-  const mockFs = fs as jest.Mocked<typeof fs>;
+
   const mockExistsSync = fs.existsSync as jest.MockedFunction<
     typeof fs.existsSync
   >;
@@ -196,7 +196,7 @@ describe('cache utilities', () => {
         .mockReturnValueOnce(false) // Directory doesn't exist when saving
         .mockReturnValueOnce(true); // File exists when loading
 
-      mockWriteFileSync.mockImplementation((file, content) => {
+      mockWriteFileSync.mockImplementation((_file, content) => {
         savedContent = content as string;
       });
 

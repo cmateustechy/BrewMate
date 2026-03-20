@@ -1,7 +1,3 @@
-// Access Electron APIs (nodeIntegration: true)
-// Use require at runtime since we're in renderer with nodeIntegration: true
-declare var require: any;
-
 // Inline constants to avoid CommonJS exports issue
 const CATEGORIES = [
   'All',
@@ -44,13 +40,7 @@ interface App {
 // Immediate console log to verify script is loading
 console.log('[Renderer] renderer.ts script loaded');
 
-let ipcRenderer: any;
-try {
-  ipcRenderer = require('electron').ipcRenderer;
-  console.log('[Renderer] ipcRenderer loaded:', !!ipcRenderer);
-} catch (error) {
-  console.error('[Renderer] Failed to load ipcRenderer:', error);
-}
+const electronAPI = (window as any).electronAPI;
 
 // State
 let allApps: Array<App> = [];
@@ -70,8 +60,8 @@ let visibleEndIndex = 0;
 let itemsPerRow = 4;
 let rowHeight = VIRTUAL_SCROLL_CONFIG.rowHeight;
 let bufferRows = VIRTUAL_SCROLL_CONFIG.bufferRows;
-let debounceTimer: NodeJS.Timeout | null = null;
-let scrollDebounceTimer: NodeJS.Timeout | null = null;
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let scrollDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 let lastScrollTop = 0;
 
 // DOM elements - will be initialized in init()
@@ -136,9 +126,9 @@ function init(): void {
     return;
   }
 
-  // Check if ipcRenderer is available
-  if (!ipcRenderer) {
-    console.error('ipcRenderer is not available');
+  // Check if electronAPI is available
+  if (!electronAPI) {
+    console.error('electronAPI is not available');
     return;
   }
 
@@ -146,8 +136,8 @@ function init(): void {
   terminalOutput.innerHTML = `Welcome to Pantry terminal.\nLast login: ${new Date().toLocaleString()}\n`;
 
   // Load version info
-  if (versionInfo && ipcRenderer) {
-    ipcRenderer.send('get-version-info');
+  if (versionInfo && electronAPI) {
+    electronAPI.getVersionInfo();
   }
 
   console.log('Initializing Pantry...');
@@ -237,19 +227,19 @@ function setupEventListeners(): void {
   });
 
   // IPC listeners
-  if (!ipcRenderer) {
+  if (!electronAPI) {
     console.error(
-      '[Renderer] Cannot setup IPC listeners - ipcRenderer not available',
+      '[Renderer] Cannot setup IPC listeners - electronAPI not available',
     );
     return;
   }
 
-  ipcRenderer.on('toggle-terminal', toggleTerminal);
-  ipcRenderer.on('terminal-output', (_event: any, data: string) => {
+  electronAPI.onToggleTerminal(toggleTerminal);
+  electronAPI.onTerminalOutput((data: string) => {
     terminalOutput.innerHTML += escapeHtml(data);
     terminalOutput.scrollTop = terminalOutput.scrollHeight;
   });
-  ipcRenderer.on('all-apps', (_event: any, apps: Array<App>) => {
+  electronAPI.onAllApps((apps: Array<App>) => {
     console.log('[Renderer] Received all-apps:', apps.length);
     allApps = apps;
     isLoading = false;
@@ -258,9 +248,8 @@ function setupEventListeners(): void {
       updateVisibleItems();
     }, 100);
   });
-  ipcRenderer.on(
-    'installed-apps',
-    (_event: any, apps: Array<{ name: string; type: string }>) => {
+  electronAPI.onInstalledApps(
+    (apps: Array<{ name: string; type: string }>) => {
       installedApps = new Set(apps.map((app) => app.name));
       renderCategories();
       if (filteredApps.length > 0) {
@@ -270,12 +259,8 @@ function setupEventListeners(): void {
       }
     },
   );
-  ipcRenderer.on(
-    'install-complete',
-    (
-      _event: any,
-      { appName, success }: { appName: string; success: boolean },
-    ) => {
+  electronAPI.onInstallComplete(
+    ({ appName, success }: { appName: string; success: boolean }) => {
       if (success) {
         installedApps.add(appName);
         renderCategories();
@@ -283,12 +268,8 @@ function setupEventListeners(): void {
       }
     },
   );
-  ipcRenderer.on(
-    'uninstall-complete',
-    (
-      _event: any,
-      { appName, success }: { appName: string; success: boolean },
-    ) => {
+  electronAPI.onUninstallComplete(
+    ({ appName, success }: { appName: string; success: boolean }) => {
       if (success) {
         installedApps.delete(appName);
         renderCategories();
@@ -296,12 +277,8 @@ function setupEventListeners(): void {
       }
     },
   );
-  ipcRenderer.on(
-    'loading-status',
-    (
-      _event: any,
-      { loading, message }: { loading: boolean; message?: string },
-    ) => {
+  electronAPI.onLoadingStatus(
+    ({ loading, message }: { loading: boolean; message?: string }) => {
       console.log('[Renderer] Loading status:', loading, message);
       isLoading = loading;
       if (loadingMessage) {
@@ -319,7 +296,7 @@ function setupEventListeners(): void {
       }
     },
   );
-  ipcRenderer.on('all-apps-updated', (_event: any, apps: Array<App>) => {
+  electronAPI.onAllAppsUpdated((apps: Array<App>) => {
     allApps = apps;
     isLoading = false;
     filterApps();
@@ -327,31 +304,26 @@ function setupEventListeners(): void {
       loadingMessage.textContent = 'Apps updated';
     }
   });
-  ipcRenderer.on(
-    'terminal-prompt-info',
-    (
-      _event: any,
-      {
-        username,
-        hostname,
-        dir,
-      }: { username: string; hostname: string; dir: string },
-    ) => {
+  electronAPI.onTerminalPromptInfo(
+    ({
+      username,
+      hostname,
+      dir,
+    }: { username: string; hostname: string; dir: string }) => {
       terminalPrompt = `${username}@${hostname} ${dir} %`;
     },
   );
 
   // Get log file path on startup
-  ipcRenderer.on('log-path', (_event: any, logFilePath: string) => {
+  electronAPI.onLogPath((logFilePath: string) => {
     console.log('[Renderer] Log file location:', logFilePath);
     if (logPath) {
       logPath.textContent = `Logs: /Users/pantry/.pantry/commands.log`;
     }
   });
 
-  ipcRenderer.on(
-    'version-info',
-    (_event: any, versionData: { version: string; commit?: string }) => {
+  electronAPI.onVersionInfo(
+    (versionData: { version: string; commit?: string }) => {
       const versionInfo = document.getElementById('versionInfo');
       if (versionInfo) {
         let versionText = `v${versionData.version}`;
@@ -366,10 +338,10 @@ function setupEventListeners(): void {
 
 function loadData(): void {
   console.log('[Renderer] Loading data...');
-  console.log('[Renderer] ipcRenderer available:', !!ipcRenderer);
+  console.log('[Renderer] electronAPI available:', !!electronAPI);
 
-  if (!ipcRenderer) {
-    console.error('[Renderer] ipcRenderer is not available - cannot load data');
+  if (!electronAPI) {
+    console.error('[Renderer] electronAPI is not available - cannot load data');
     if (loadingMessage) {
       loadingMessage.textContent = 'Error: Cannot connect to main process';
     }
@@ -378,10 +350,10 @@ function loadData(): void {
 
   try {
     console.log('[Renderer] Sending get-all-apps');
-    ipcRenderer.send('get-all-apps');
+    electronAPI.getAllApps();
 
     console.log('[Renderer] Sending get-installed-apps');
-    ipcRenderer.send('get-installed-apps');
+    electronAPI.getInstalledApps();
 
     console.log('[Renderer] IPC messages sent successfully');
   } catch (error: any) {
@@ -627,9 +599,9 @@ function renderApps(): void {
       const isInstalled = installedApps.has(appName);
 
       if (isInstalled) {
-        ipcRenderer.send('uninstall-app', appName, appType);
+        electronAPI.uninstallApp(appName, appType);
       } else {
-        ipcRenderer.send('install-app', appName, appType);
+        electronAPI.installApp(appName, appType);
       }
 
       if (!terminalVisible) {
@@ -717,7 +689,7 @@ function runCommand(command: string): void {
   )}\n`;
   terminalOutput.scrollTop = terminalOutput.scrollHeight;
 
-  ipcRenderer.send('execute-command', command);
+  electronAPI.executeCommand(command);
 
   setTimeout(() => {
     commandToRun = null;
@@ -734,20 +706,20 @@ function escapeHtml(text: string): string {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     console.log('[Renderer] DOMContentLoaded event fired');
-    if (ipcRenderer) {
+    if (electronAPI) {
       // Get terminal prompt info
-      ipcRenderer.send('get-terminal-prompt');
+      electronAPI.getTerminalPrompt();
       // Get log file path
-      ipcRenderer.send('get-log-path');
+      electronAPI.getLogPath();
     }
     init();
   });
 } else {
   // DOM already loaded
   console.log('[Renderer] DOM already loaded, initializing immediately');
-  if (ipcRenderer) {
-    ipcRenderer.send('get-terminal-prompt');
-    ipcRenderer.send('get-log-path');
+  if (electronAPI) {
+    electronAPI.getTerminalPrompt();
+    electronAPI.getLogPath();
   }
   init();
 }
