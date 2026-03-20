@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, shell } from 'electron';
 import * as path from 'path';
 import { setupIpcHandlers } from './ipcHandlers';
 import { logCommand } from '../utils/logger';
@@ -32,6 +32,26 @@ function createWindow(): void {
   });
 
   mainWindow.loadFile(htmlPath);
+
+  // Open all external links in the default OS browser
+  // Handles <a target="_blank"> clicks
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' }; // never open a new Electron window
+  });
+
+  // Handles direct navigation attempts away from the app
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const appUrl = mainWindow?.webContents.getURL() ?? '';
+    if (url !== appUrl) {
+      event.preventDefault();
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        shell.openExternal(url);
+      }
+    }
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
