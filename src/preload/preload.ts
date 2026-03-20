@@ -33,4 +33,10 @@ contextBridge.exposeInMainWorld('pantryAPI', {
     ipcRenderer.on('log-path', (_event, logFilePath) => callback(logFilePath)),
   onVersionInfo: (callback: (versionData: { version: string; commit?: string }) => void) => 
     ipcRenderer.on('version-info', (_event, versionData) => callback(versionData)),
+
+  // Sudo password handling
+  onSudoPasswordRequest: (callback: (data: { requestId: string; appName: string }) => void) =>
+    ipcRenderer.on('sudo-password-request', (_event, data) => callback(data)),
+  sendSudoPassword: (requestId: string, password: string) =>
+    ipcRenderer.send('sudo-password-response', requestId, password),
 });

@@ -77,6 +77,14 @@ let appCount: HTMLElement;
 let loadingMessage: HTMLElement;
 let logPath: HTMLElement;
 
+// Sudo modal DOM elements
+let sudoModal: HTMLElement;
+let sudoAppNameEl: HTMLElement;
+let sudoPasswordInput: HTMLInputElement;
+let sudoCancelBtn: HTMLButtonElement;
+let sudoConfirmBtn: HTMLButtonElement;
+let pendingSudoRequestId: string | null = null;
+
 // Initialize
 function init(): void {
   // Get DOM elements
@@ -125,6 +133,13 @@ function init(): void {
     });
     return;
   }
+
+  // Initialize sudo modal elements
+  sudoModal = document.getElementById('sudoModal') as HTMLElement;
+  sudoAppNameEl = document.getElementById('sudoAppName') as HTMLElement;
+  sudoPasswordInput = document.getElementById('sudoPasswordInput') as HTMLInputElement;
+  sudoCancelBtn = document.getElementById('sudoCancelBtn') as HTMLButtonElement;
+  sudoConfirmBtn = document.getElementById('sudoConfirmBtn') as HTMLButtonElement;
 
   // Check if electronAPI is available
   if (!electronAPI) {
@@ -334,6 +349,53 @@ function setupEventListeners(): void {
       }
     },
   );
+
+  // Sudo password modal
+  electronAPI.onSudoPasswordRequest(
+    ({ requestId, appName }: { requestId: string; appName: string }) => {
+      pendingSudoRequestId = requestId;
+      if (sudoAppNameEl) sudoAppNameEl.textContent = appName;
+      if (sudoPasswordInput) sudoPasswordInput.value = '';
+      if (sudoModal) sudoModal.classList.remove('hidden');
+      // Auto-focus the password field
+      setTimeout(() => sudoPasswordInput?.focus(), 50);
+    },
+  );
+
+  function confirmSudoPassword(): void {
+    if (!pendingSudoRequestId) return;
+    const password = sudoPasswordInput?.value ?? '';
+    electronAPI.sendSudoPassword(pendingSudoRequestId, password);
+    pendingSudoRequestId = null;
+    if (sudoModal) sudoModal.classList.add('hidden');
+    if (sudoPasswordInput) sudoPasswordInput.value = '';
+  }
+
+  function cancelSudoPassword(): void {
+    if (!pendingSudoRequestId) return;
+    electronAPI.sendSudoPassword(pendingSudoRequestId, '');
+    pendingSudoRequestId = null;
+    if (sudoModal) sudoModal.classList.add('hidden');
+    if (sudoPasswordInput) sudoPasswordInput.value = '';
+  }
+
+  if (sudoConfirmBtn) sudoConfirmBtn.addEventListener('click', confirmSudoPassword);
+  if (sudoCancelBtn) sudoCancelBtn.addEventListener('click', cancelSudoPassword);
+
+  // Submit on Enter key inside the password field
+  if (sudoPasswordInput) {
+    sudoPasswordInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') confirmSudoPassword();
+      if (e.key === 'Escape') cancelSudoPassword();
+    });
+  }
+
+  // Close modal when clicking the backdrop
+  if (sudoModal) {
+    sudoModal.addEventListener('click', (e) => {
+      if (e.target === sudoModal) cancelSudoPassword();
+    });
+  }
 }
 
 function loadData(): void {

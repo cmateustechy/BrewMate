@@ -563,3 +563,140 @@ body {
   font-size: 14px;
   color: rgba(193, 182, 255, 0.8);
 }
+
+/* ─── Sudo Password Modal ─────────────────────────────────────────────────── */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(10, 5, 20, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: modal-fade-in 0.2s ease;
+}
+
+.modal-overlay.hidden {
+  display: none;
+}
+
+@keyframes modal-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal-card {
+  background: rgba(30, 18, 54, 0.95);
+  border: 1px solid rgba(99, 255, 210, 0.25);
+  border-radius: 20px;
+  padding: 36px 32px 28px;
+  max-width: 420px;
+  width: 90%;
+  box-shadow:
+    0 0 0 1px rgba(99, 255, 210, 0.1),
+    0 24px 60px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: modal-slide-up 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modal-slide-up {
+  from { transform: translateY(20px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+
+.modal-icon {
+  font-size: 40px;
+  text-align: center;
+  line-height: 1;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+}
+
+.modal-message {
+  font-size: 14px;
+  color: rgba(193, 182, 255, 0.85);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.modal-message strong {
+  color: #63ffd2;
+}
+
+.modal-input-wrapper {
+  margin-top: 4px;
+}
+
+.modal-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14px;
+  padding: 12px 16px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.modal-input:focus {
+  border-color: #63ffd2;
+  box-shadow: 0 0 0 2px rgba(99, 255, 210, 0.2);
+}
+
+.modal-input::placeholder {
+  color: rgba(156, 163, 175, 0.6);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.modal-btn {
+  flex: 1;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.modal-btn-cancel {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(193, 182, 255, 0.85);
+}
+
+.modal-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.modal-btn-confirm {
+  background: #63ffd2;
+  color: #0a0514;
+}
+
+.modal-btn-confirm:hover {
+  background: #8fffdf;
+  box-shadow: 0 4px 14px rgba(99, 255, 210, 0.35);
+}
+
+.modal-btn:active {
+  transform: scale(0.97);
+}

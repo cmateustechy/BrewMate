@@ -1,6 +1,7 @@
 import { ipcMain, IpcMainEvent, app } from 'electron';
 import { spawn } from 'child_process';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import { fetchJSON } from '../utils/fetchData';
 import { loadFromCache, saveToCache } from '../utils/cache';
 import { getTerminalPromptInfo } from '../utils/terminal';
@@ -12,6 +13,158 @@ import {
   HOMEBREW_FORMULAS_JSON_URL,
 } from '../constants';
 import { App, LoadingStatus } from '../types';
+
+// ─── Sudo password infrastructure ────────────────────────────────────────────
+
+/** Pending sudo password requests: requestId → { resolve, reject } */
+const pendingSudoRequests = new Map<
+  string,
+  { resolve: (pw: string) => void; reject: (err: Error) => void }
+>();
+
+/**
+ * Ask the renderer to show a password modal and return the entered password.
+ * Resolves with the password string, or rejects if the user cancels.
+ */
+function requestSudoPassword(
+  event: IpcMainEvent,
+  appName: string,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const requestId = crypto.randomBytes(8).toString('hex');
+    pendingSudoRequests.set(requestId, { resolve, reject });
+    event.reply('sudo-password-request', { requestId, appName });
+  });
+}
+
+/** Sudo detection regex – matches the stderr messages brew/sudo emits */
+const SUDO_PASSWORD_REGEX = /sudo.*password.*required|password.*is required/i;
+
+/**
+ * Run a brew command. If sudo is detected in the output, prompt the user for
+ * their password and re-run with `sudo -S brew …` piping the password.
+ *
+ * @param args        brew-cli arguments (e.g. ['install', '--cask', 'fuse-t'])
+ * @param event       IpcMainEvent so we can reply with terminal-output
+ * @param completeChannel  e.g. 'install-complete' or 'uninstall-complete'
+ * @param appName     used in the password prompt modal title
+ */
+function runBrewCommand(
+  args: string[],
+  event: IpcMainEvent,
+  completeChannel: 'install-complete' | 'uninstall-complete',
+  appName: string,
+): void {
+  const commandString = `brew ${args.join(' ')}`;
+  let output = '';
+  logCommand(commandString);
+
+  const env = getEnvWithBrewPath();
+  const cwd = process.env.HOME || process.cwd();
+
+  const child = spawn('brew', args, { shell: false, cwd, env });
+
+  let sudoDetected = false;
+
+  const handleData = (data: Buffer) => {
+    const text = data.toString();
+    output += text;
+    event.reply('terminal-output', text);
+
+    if (!sudoDetected && SUDO_PASSWORD_REGEX.test(text)) {
+      sudoDetected = true;
+      child.kill();
+
+      // Notify user in terminal
+      event.reply(
+        'terminal-output',
+        '\n⚠️  Administrator password required. Please enter your password in the dialog…\n',
+      );
+
+      requestSudoPassword(event, appName)
+        .then((password) => {
+          if (!password) {
+            event.reply(
+              'terminal-output',
+              '\n❌ Operation cancelled by user.\n',
+            );
+            event.reply(completeChannel, { appName, success: false });
+            event.reply(
+              'terminal-output',
+              '\nProcess exited with code 1\n',
+            );
+            return;
+          }
+
+          // Re-run with sudo -S brew <args>
+          const sudoArgs = ['-S', 'brew', ...args];
+          const sudoCommandString = `sudo -S brew ${args.join(' ')}`;
+          let sudoOutput = '';
+          logCommand(sudoCommandString);
+
+          event.reply(
+            'terminal-output',
+            `\n🔑 Re-running with administrator privileges…\n`,
+          );
+
+          const sudoChild = spawn('sudo', sudoArgs, {
+            shell: false,
+            cwd,
+            env,
+          });
+
+          // Write password + newline to sudo's stdin
+          sudoChild.stdin.write(`${password}\n`);
+          sudoChild.stdin.end();
+
+          sudoChild.stdout.on('data', (d: Buffer) => {
+            const t = d.toString();
+            sudoOutput += t;
+            event.reply('terminal-output', t);
+          });
+
+          sudoChild.stderr.on('data', (d: Buffer) => {
+            const t = d.toString();
+            sudoOutput += t;
+            // Filter out the sudo password prompt echo from visible output
+            if (!SUDO_PASSWORD_REGEX.test(t) && !t.startsWith('Password:')) {
+              event.reply('terminal-output', t);
+            }
+          });
+
+          sudoChild.on('close', (code) => {
+            logCommand(sudoCommandString, sudoOutput, code);
+            event.reply(completeChannel, {
+              appName,
+              success: code === 0,
+            });
+            event.reply(
+              'terminal-output',
+              `\nProcess exited with code ${code}\n`,
+            );
+          });
+        })
+        .catch(() => {
+          event.reply(
+            'terminal-output',
+            '\n❌ Password request failed or cancelled.\n',
+          );
+          event.reply(completeChannel, { appName, success: false });
+          event.reply('terminal-output', '\nProcess exited with code 1\n');
+        });
+    }
+  };
+
+  child.stdout.on('data', handleData);
+  child.stderr.on('data', handleData);
+
+  child.on('close', (code) => {
+    if (sudoDetected) return; // handled above
+    logCommand(commandString, output, code);
+    event.reply(completeChannel, { appName, success: code === 0 });
+    event.reply('terminal-output', `\nProcess exited with code ${code}\n`);
+  });
+}
 
 export function setupIpcHandlers(): void {
   // Get installed apps
@@ -120,41 +273,12 @@ export function setupIpcHandlers(): void {
   ipcMain.on(
     'install-app',
     (event: IpcMainEvent, appName: string, appType: string) => {
+      console.log('[IPC] Installing app:', appName, appType);
       const args =
         appType === 'cask'
           ? ['install', '--cask', '--no-quarantine', '--force', appName]
           : ['install', appName];
-
-      const commandString = `brew ${args.join(' ')}`;
-
-      console.log('[IPC] Installing app:', appName, appType);
-      let output = '';
-      logCommand(commandString);
-      console.log('[IPC] Command logged:', commandString);
-
-      const shell = spawn('brew', args, {
-        shell: false,
-        cwd: process.env.HOME || process.cwd(),
-        env: getEnvWithBrewPath(),
-      });
-
-      shell.stdout.on('data', (data) => {
-        const dataStr = data.toString();
-        output += dataStr;
-        event.reply('terminal-output', dataStr);
-      });
-
-      shell.stderr.on('data', (data) => {
-        const dataStr = data.toString();
-        output += dataStr;
-        event.reply('terminal-output', dataStr);
-      });
-
-      shell.on('close', (code) => {
-        logCommand(commandString, output, code);
-        event.reply('install-complete', { appName, success: code === 0 });
-        event.reply('terminal-output', `\nProcess exited with code ${code}\n`);
-      });
+      runBrewCommand(args, event, 'install-complete', appName);
     },
   );
 
@@ -162,39 +286,24 @@ export function setupIpcHandlers(): void {
   ipcMain.on(
     'uninstall-app',
     (event: IpcMainEvent, appName: string, appType: string) => {
+      console.log('[IPC] Uninstalling app:', appName, appType);
       const args =
         appType === 'cask'
           ? ['uninstall', '--cask', '--force', appName]
           : ['uninstall', '--force', appName];
+      runBrewCommand(args, event, 'uninstall-complete', appName);
+    },
+  );
 
-      const commandString = `brew ${args.join(' ')}`;
-
-      let output = '';
-      logCommand(commandString);
-
-      const shell = spawn('brew', args, {
-        shell: false,
-        cwd: process.env.HOME || process.cwd(),
-        env: getEnvWithBrewPath(),
-      });
-
-      shell.stdout.on('data', (data) => {
-        const dataStr = data.toString();
-        output += dataStr;
-        event.reply('terminal-output', dataStr);
-      });
-
-      shell.stderr.on('data', (data) => {
-        const dataStr = data.toString();
-        output += dataStr;
-        event.reply('terminal-output', dataStr);
-      });
-
-      shell.on('close', (code) => {
-        logCommand(commandString, output, code);
-        event.reply('uninstall-complete', { appName, success: code === 0 });
-        event.reply('terminal-output', `\nProcess exited with code ${code}\n`);
-      });
+  // Handle sudo password response from renderer
+  ipcMain.on(
+    'sudo-password-response',
+    (_event: IpcMainEvent, requestId: string, password: string) => {
+      const pending = pendingSudoRequests.get(requestId);
+      if (pending) {
+        pendingSudoRequests.delete(requestId);
+        pending.resolve(password);
+      }
     },
   );
 

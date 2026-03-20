@@ -139,6 +139,30 @@
       </p>
     </div>
 
+    <!-- Sudo Password Modal -->
+    <div id="sudoModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="sudoModalTitle">
+      <div class="modal-card">
+        <div class="modal-icon">🔐</div>
+        <h2 class="modal-title" id="sudoModalTitle">Administrator Password Required</h2>
+        <p class="modal-message">
+          <strong id="sudoAppName"></strong> requires administrator privileges to complete this operation.
+        </p>
+        <div class="modal-input-wrapper">
+          <input
+            type="password"
+            id="sudoPasswordInput"
+            class="modal-input"
+            placeholder="Enter your macOS password…"
+            autocomplete="current-password"
+          />
+        </div>
+        <div class="modal-actions">
+          <button id="sudoCancelBtn" class="modal-btn modal-btn-cancel">Cancel</button>
+          <button id="sudoConfirmBtn" class="modal-btn modal-btn-confirm">Confirm</button>
+        </div>
+      </div>
+    </div>
+
     <script src="./renderer.js"></script>
   </body>
 </html>
