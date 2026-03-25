@@ -402,7 +402,7 @@ export function setupIpcHandlers(): void {
       'brew list',
       'brew doctor',
       'brew cleanup',
-      'brew cu -a -y',
+      'brew cu -a -y --cleanup',
     ];
 
     if (!allowedCommands.includes(command.trim())) {
