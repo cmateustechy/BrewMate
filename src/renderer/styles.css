@@ -362,11 +362,23 @@ body {
   overflow-y: auto;
 }
 
-.brew-commands h3 {
+.brew-commands h3, .brew-commands-summary {
   font-size: 20px;
   font-weight: bold;
   color: #fff;
   margin-bottom: 8px;
+}
+
+.installed-accordion details > .brew-commands-summary {
+  margin-bottom: 0;
+  font-size: 18px;
+}
+
+.brew-commands-content {
+  max-height: none;
+  overflow: visible;
+  padding: 12px 8px;
+  gap: 8px;
 }
 
 .brew-command-button {
@@ -397,6 +409,95 @@ body {
   font-size: 12px;
   color: #63ffd2;
   margin-right: 8px;
+}
+
+/* Installed Accordion */
+.installed-accordion {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.installed-accordion details {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.installed-accordion summary {
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #c1b6ff;
+  cursor: pointer;
+  list-style: none; /* Hide default arrow in some browsers */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.2s;
+}
+
+.installed-accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.installed-accordion summary::after {
+  content: '▼';
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+
+.installed-accordion details[open] summary {
+  background: rgba(151, 117, 251, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.installed-accordion details[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.accordion-content {
+  padding: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.accordion-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.accordion-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.accordion-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.accordion-item {
+  padding: 6px 12px;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.accordion-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.accordion-item-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Terminal */

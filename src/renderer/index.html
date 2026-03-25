@@ -49,25 +49,40 @@
         <button class="type-toggle" data-type="cask">Casks</button>
         <button class="type-toggle" data-type="formula">Formulas</button>
       </div>
-      <h3>Brew Commands</h3>
-      <button class="brew-command-button" data-command="brew update">
-        <span class="prompt">$</span> brew update
-      </button>
-      <button class="brew-command-button" data-command="brew upgrade">
-        <span class="prompt">$</span> brew upgrade
-      </button>
-      <button class="brew-command-button" data-command="brew list">
-        <span class="prompt">$</span> brew list
-      </button>
-      <button class="brew-command-button" data-command="brew doctor">
-        <span class="prompt">$</span> brew doctor
-      </button>
-      <button class="brew-command-button" data-command="brew cleanup">
-        <span class="prompt">$</span> brew cleanup
-      </button>
-      <button class="brew-command-button" data-command="brew update && brew upgrade && brew cu -a -y --cleanup">
-        <span class="prompt">$</span> brew update & upgrade all
-      </button>
+      <div class="installed-accordion" style="margin-top: 0;">
+        <details open>
+          <summary class="brew-commands-summary">Brew Commands</summary>
+          <div class="accordion-content brew-commands-content">
+            <button class="brew-command-button" data-command="brew update">
+              <span class="prompt">$</span> brew update
+            </button>
+            <button class="brew-command-button" data-command="brew upgrade">
+              <span class="prompt">$</span> brew upgrade
+            </button>
+            <button class="brew-command-button" data-command="brew list">
+              <span class="prompt">$</span> brew list
+            </button>
+            <button class="brew-command-button" data-command="brew doctor">
+              <span class="prompt">$</span> brew doctor
+            </button>
+            <button class="brew-command-button" data-command="brew cleanup">
+              <span class="prompt">$</span> brew cleanup
+            </button>
+            <button class="brew-command-button" data-command="brew update && brew upgrade && brew cu -a -y --cleanup">
+              <span class="prompt">$</span> brew update & upgrade all
+            </button>
+          </div>
+        </details>
+        
+        <details>
+          <summary>Installed Casks ( <span id="installedCasksCount">0</span> )</summary>
+          <div class="accordion-content" id="installedCasksList"></div>
+        </details>
+        <details>
+          <summary>Installed Taps ( <span id="installedTapsCount">0</span> )</summary>
+          <div class="accordion-content" id="installedTapsList"></div>
+        </details>
+      </div>
     </div>
   </div>
 

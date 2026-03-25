@@ -29,6 +29,16 @@ export async function getInstalledApps(): Promise<InstalledApp[]> {
       .filter(Boolean)
       .map((formula) => formula.trim());
 
+    // Get installed taps
+    const { stdout: tapsOutput } = await execAsync('brew tap', {
+      env,
+    });
+    const installedTaps = tapsOutput
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map((tap) => tap.trim());
+
     return [
       ...installedCasks.map((cask: string) => ({
         name: cask,
@@ -37,6 +47,10 @@ export async function getInstalledApps(): Promise<InstalledApp[]> {
       ...installedFormulas.map((formula: string) => ({
         name: formula,
         type: 'formula' as const,
+      })),
+      ...installedTaps.map((tap: string) => ({
+        name: tap,
+        type: 'tap' as const,
       })),
     ];
   } catch (error) {

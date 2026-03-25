@@ -45,6 +45,8 @@ const electronAPI = (window as any).pantryAPI;
 // State
 let allApps: Array<App> = [];
 let installedApps = new Set<string>();
+let installedCasksItems: string[] = [];
+let installedTapsItems: string[] = [];
 let filteredApps: Array<App> = [];
 let selectedCategory = 'All';
 let selectedType: 'All' | 'cask' | 'formula' = 'All';
@@ -77,6 +79,12 @@ let appCount: HTMLElement;
 let loadingMessage: HTMLElement;
 let logPath: HTMLElement;
 
+// Accordion DOM elements
+let installedCasksList: HTMLElement;
+let installedTapsList: HTMLElement;
+let installedCasksCount: HTMLElement;
+let installedTapsCount: HTMLElement;
+
 // Sudo modal DOM elements
 let sudoModal: HTMLElement;
 let sudoAppNameEl: HTMLElement;
@@ -105,6 +113,11 @@ function init(): void {
   appCount = document.getElementById('appCount') as HTMLElement;
   loadingMessage = document.getElementById('loadingMessage') as HTMLElement;
   logPath = document.getElementById('logPath') as HTMLElement;
+
+  installedCasksList = document.getElementById('installedCasksList') as HTMLElement;
+  installedTapsList = document.getElementById('installedTapsList') as HTMLElement;
+  installedCasksCount = document.getElementById('installedCasksCount') as HTMLElement;
+  installedTapsCount = document.getElementById('installedTapsCount') as HTMLElement;
 
   const versionInfo = document.getElementById('versionInfo') as HTMLElement;
 
@@ -267,6 +280,11 @@ function setupEventListeners(): void {
   electronAPI.onInstalledApps(
     (apps: Array<{ name: string; type: string }>) => {
       installedApps = new Set(apps.map((app) => app.name));
+      
+      installedCasksItems = apps.filter(a => a.type === 'cask').map(a => a.name).sort();
+      installedTapsItems = apps.filter(a => a.type === 'tap').map(a => a.name).sort();
+      
+      renderAccordions();
       renderCategories();
       if (filteredApps.length > 0) {
         updateVisibleItems();
@@ -423,6 +441,31 @@ function loadData(): void {
     console.error('[Renderer] Error sending IPC messages:', error);
     if (loadingMessage) {
       loadingMessage.textContent = `Error: Cannot connect to main process - ${error.message}`;
+    }
+  }
+}
+
+function renderAccordions(): void {
+  if (installedCasksCount) installedCasksCount.textContent = installedCasksItems.length.toString();
+  if (installedTapsCount) installedTapsCount.textContent = installedTapsItems.length.toString();
+  
+  if (installedCasksList) {
+    if (installedCasksItems.length === 0) {
+      installedCasksList.innerHTML = '<div class="accordion-item" style="color: rgba(255,255,255,0.4)">None found</div>';
+    } else {
+      installedCasksList.innerHTML = installedCasksItems.map(name => 
+        `<div class="accordion-item"><span class="accordion-item-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span></div>`
+      ).join('');
+    }
+  }
+
+  if (installedTapsList) {
+    if (installedTapsItems.length === 0) {
+      installedTapsList.innerHTML = '<div class="accordion-item" style="color: rgba(255,255,255,0.4)">None found</div>';
+    } else {
+      installedTapsList.innerHTML = installedTapsItems.map(name => 
+        `<div class="accordion-item"><span class="accordion-item-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span></div>`
+      ).join('');
     }
   }
 }

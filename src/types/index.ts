@@ -8,7 +8,7 @@ export interface App {
 
 export interface InstalledApp {
   name: string;
-  type: 'cask' | 'formula';
+  type: 'cask' | 'formula' | 'tap';
 }
 
 export interface TerminalPromptInfo {
