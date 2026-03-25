@@ -403,6 +403,7 @@ export function setupIpcHandlers(): void {
       'brew doctor',
       'brew cleanup',
       'brew cu -a -y --cleanup',
+      'brew update && brew upgrade && brew cu -a -y --cleanup',
     ];
 
     if (!allowedCommands.includes(command.trim())) {
@@ -415,9 +416,17 @@ export function setupIpcHandlers(): void {
     logCommand(command);
     console.log('[IPC] Command logged:', command);
 
-    const parts = command.trim().split(' ');
-    const executable = parts[0];
-    const args = parts.slice(1);
+    let executable: string;
+    let args: string[];
+
+    if (command.includes('&&')) {
+      executable = 'sh';
+      args = ['-c', command];
+    } else {
+      const parts = command.trim().split(' ');
+      executable = parts[0];
+      args = parts.slice(1);
+    }
 
     const shell = spawn(executable, args, {
       shell: false,
