@@ -274,6 +274,15 @@ export function setupIpcHandlers(): void {
     'install-app',
     (event: IpcMainEvent, appName: string, appType: string) => {
       console.log('[IPC] Installing app:', appName, appType);
+
+      // Validate appName to prevent command injection or invalid arguments
+      if (!/^[a-zA-Z0-9\-_\.\/@]+$/.test(appName)) {
+        console.error('[IPC] Invalid app name provided:', appName);
+        event.reply('install-complete', { appName, success: false, error: 'Invalid app name' });
+        event.reply('terminal-output', `\nError: Invalid app name provided for installation: ${appName}\n`);
+        return;
+      }
+
       const args =
         appType === 'cask'
           ? ['install', '--cask', '--no-quarantine', '--force', appName]
@@ -287,6 +296,15 @@ export function setupIpcHandlers(): void {
     'uninstall-app',
     (event: IpcMainEvent, appName: string, appType: string) => {
       console.log('[IPC] Uninstalling app:', appName, appType);
+
+      // Validate appName to prevent command injection or invalid arguments
+      if (!/^[a-zA-Z0-9\-_\.\/@]+$/.test(appName)) {
+        console.error('[IPC] Invalid app name provided:', appName);
+        event.reply('uninstall-complete', { appName, success: false, error: 'Invalid app name' });
+        event.reply('terminal-output', `\nError: Invalid app name provided for uninstallation: ${appName}\n`);
+        return;
+      }
+
       const args =
         appType === 'cask'
           ? ['uninstall', '--cask', '--force', appName]
