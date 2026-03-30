@@ -42,7 +42,7 @@ Before you begin, ensure you have met the following requirements:
 In terminal:
 
 ```sh
-brew install romankurnovskii/awesome-brew/brewmate --cask --no-quarantine
+brew install romankurnovskii/awesome-brew/pantry --cask --no-quarantine
 ```
 
 ### Option 3
@@ -52,7 +52,7 @@ In terminal:
 ```sh
 brew tap romankurnovskii/awesome-brew
 brew update
-brew install --cask --no-quarantine brewmate
+brew install --cask --no-quarantine pantry
 ```
 
 ## First time launch
@@ -76,7 +76,7 @@ brew install --cask --no-quarantine brewmate
 
 ## Build Types
 
-BrewMate supports two build types:
+Pantry supports two build types:
 
 ### Local Test Build
 

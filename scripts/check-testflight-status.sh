@@ -20,7 +20,7 @@ echo "Step 1: Check Build Status in App Store Connect"
 echo "=========================================="
 echo ""
 echo "1. Go to: https://appstoreconnect.apple.com"
-echo "2. Navigate to: My Apps → BrewMate → TestFlight (left sidebar)"
+echo "2. Navigate to: My Apps → Pantry → TestFlight (left sidebar)"
 echo "3. Check the 'macOS Builds' section"
 echo ""
 echo "Look for your build and check its status:"
@@ -96,14 +96,14 @@ echo "=========================================="
 echo ""
 
 # Check if we can find the built package
-# Package name format: BrewMate-{version}-{arch}.pkg
+# Package name format: Pantry-{version}-{arch}.pkg
 PKG_DIR="dist-app/mas-universal"
 PKG_PATH=""
 
 # Try to find the package file (it has version in the name)
 if [ -d "$PKG_DIR" ]; then
   # Find the most recent .pkg file matching the pattern
-  PKG_PATH=$(find "$PKG_DIR" -name "BrewMate-*-*.pkg" -type f | sort -r | head -1)
+  PKG_PATH=$(find "$PKG_DIR" -name "Pantry-*-*.pkg" -type f | sort -r | head -1)
 fi
 
 if [ -n "$PKG_PATH" ] && [ -f "$PKG_PATH" ]; then
@@ -111,10 +111,10 @@ if [ -n "$PKG_PATH" ] && [ -f "$PKG_PATH" ]; then
   echo ""
   echo "Package details:"
   
-  # Extract version from package name (BrewMate-1.0.2-universal.pkg -> 1.0.2)
+  # Extract version from package name (Pantry-1.0.2-universal.pkg -> 1.0.2)
   PKG_NAME=$(basename "$PKG_PATH")
-  VERSION_FROM_PKG=$(echo "$PKG_NAME" | sed -E 's/BrewMate-([^-]+)-.*\.pkg/\1/')
-  ARCH_FROM_PKG=$(echo "$PKG_NAME" | sed -E 's/BrewMate-[^-]+-(.+)\.pkg/\1/')
+  VERSION_FROM_PKG=$(echo "$PKG_NAME" | sed -E 's/Pantry-([^-]+)-.*\.pkg/\1/')
+  ARCH_FROM_PKG=$(echo "$PKG_NAME" | sed -E 's/Pantry-[^-]+-(.+)\.pkg/\1/')
   
   # Try to get version info from package.json
   if [ -f "package.json" ]; then
@@ -137,7 +137,7 @@ if [ -n "$PKG_PATH" ] && [ -f "$PKG_PATH" ]; then
   echo "Verify these match what's in App Store Connect!"
 else
   echo "⚠️  Package not found in: $PKG_DIR"
-  echo "   Looking for pattern: BrewMate-*-*.pkg"
+  echo "   Looking for pattern: Pantry-*-*.pkg"
   echo "   Build the package first with: npm run build:mas:universal"
 fi
 
@@ -161,7 +161,7 @@ echo "Next Steps"
 echo "=========================================="
 echo ""
 echo "1. Log into App Store Connect: https://appstoreconnect.apple.com"
-echo "2. Go to: My Apps → BrewMate → TestFlight"
+echo "2. Go to: My Apps → Pantry → TestFlight"
 echo "3. Check 'macOS Builds' section for your build"
 echo "4. If build is ready, add it to a TestFlight group"
 echo "5. Add testers and send invitations"

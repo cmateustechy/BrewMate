@@ -2,7 +2,7 @@ directories:
   output: dist-app
   buildResources: build
 
-appId: com.app.brewmate
+appId: com.app.pantry
 productName: Pantry
 copyright: © 2025 Roman Kurnovskii
 

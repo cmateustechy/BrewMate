@@ -52,11 +52,15 @@ describe('brew utilities', () => {
         .mockResolvedValueOnce({
           stdout: 'formula1\nformula2',
           stderr: '',
+        })
+        .mockResolvedValueOnce({
+          stdout: 'tap1\ntap2',
+          stderr: '',
         });
 
       const result = await getInstalledApps();
 
-      expect(result).toHaveLength(5);
+      expect(result).toHaveLength(7);
       expect(result).toEqual(
         expect.arrayContaining([
           { name: 'cask1', type: 'cask' },
@@ -64,6 +68,8 @@ describe('brew utilities', () => {
           { name: 'cask3', type: 'cask' },
           { name: 'formula1', type: 'formula' },
           { name: 'formula2', type: 'formula' },
+          { name: 'tap1', type: 'tap' },
+          { name: 'tap2', type: 'tap' },
         ]),
       );
 
@@ -75,6 +81,10 @@ describe('brew utilities', () => {
         'brew list --formula',
         expect.objectContaining({ env: expect.any(Object) }),
       );
+      expect(mockExecAsync).toHaveBeenCalledWith(
+        'brew tap',
+        expect.objectContaining({ env: expect.any(Object) }),
+      );
     });
 
     it('should use getEnvWithBrewPath for environment', async () => {
@@ -84,6 +94,7 @@ describe('brew utilities', () => {
       };
       mockGetEnvWithBrewPath.mockReturnValue(mockEnv);
       mockExecAsync
+        .mockResolvedValueOnce({ stdout: '', stderr: '' })
         .mockResolvedValueOnce({ stdout: '', stderr: '' })
         .mockResolvedValueOnce({ stdout: '', stderr: '' });
 
@@ -98,6 +109,7 @@ describe('brew utilities', () => {
 
     it('should handle empty installed apps', async () => {
       mockExecAsync
+        .mockResolvedValueOnce({ stdout: '', stderr: '' })
         .mockResolvedValueOnce({ stdout: '', stderr: '' })
         .mockResolvedValueOnce({ stdout: '', stderr: '' });
 
@@ -115,16 +127,21 @@ describe('brew utilities', () => {
         .mockResolvedValueOnce({
           stdout: '\nformula1\n\n',
           stderr: '',
+        })
+        .mockResolvedValueOnce({
+          stdout: 'tap1\n\n',
+          stderr: '',
         });
 
       const result = await getInstalledApps();
 
-      expect(result).toHaveLength(3);
+      expect(result).toHaveLength(4);
       expect(result).toEqual(
         expect.arrayContaining([
           { name: 'cask1', type: 'cask' },
           { name: 'cask2', type: 'cask' },
           { name: 'formula1', type: 'formula' },
+          { name: 'tap1', type: 'tap' },
         ]),
       );
     });
@@ -169,6 +186,7 @@ describe('brew utilities', () => {
           stdout: 'app-with-dashes\napp_with_underscores\napp.with.dots',
           stderr: '',
         })
+        .mockResolvedValueOnce({ stdout: '', stderr: '' })
         .mockResolvedValueOnce({ stdout: '', stderr: '' });
 
       const result = await getInstalledApps();
