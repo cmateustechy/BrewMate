@@ -11,7 +11,7 @@ echo ""
 
 # Find the package
 PKG_DIR="dist-app/mas-universal"
-PKG_PATH=$(find "$PKG_DIR" -name "BrewMate-*-*.pkg" -type f | sort -r | head -1)
+PKG_PATH=$(find "$PKG_DIR" -name "Pantry-*-*.pkg" -type f | sort -r | head -1)
 
 if [ -z "$PKG_PATH" ] || [ ! -f "$PKG_PATH" ]; then
   echo "❌ ERROR: Package not found!"

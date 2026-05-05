@@ -1,6 +1,6 @@
 {
   "name": "pantry",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "description": "Pantry - A modern package manager GUI for macOS",
   "author": "Roman Kurnovskii",
   "main": "dist/index.js",
@@ -24,7 +24,6 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "devDependencies": {
-    "@electron/fuses": "^2.1.0",
     "@types/jest": "^29.5.12",
     "@types/node": "^24.10.0",
     "electron": "^39.0.0",

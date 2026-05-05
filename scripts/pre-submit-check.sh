@@ -15,7 +15,7 @@ if [ -n "$1" ]; then
   PKG_PATH="$1"
 else
   PKG_DIR="dist-app/mas-universal"
-  PKG_PATH=$(find "$PKG_DIR" -name "BrewMate-*-*.pkg" -type f | sort -r | head -1)
+  PKG_PATH=$(find "$PKG_DIR" -name "Pantry-*-*.pkg" -type f | sort -r | head -1)
 fi
 
 if [ ! -f "$PKG_PATH" ]; then
@@ -68,7 +68,7 @@ WARNINGS=0
 
 # 1. Check architecture (must be universal for App Store)
 echo "1. Architecture Check:"
-ARCHS=$(lipo -info "$APP_BUNDLE/Contents/MacOS/BrewMate" 2>/dev/null | grep -oE '(arm64|x86_64)' || echo "")
+ARCHS=$(lipo -info "$APP_BUNDLE/Contents/MacOS/Pantry" 2>/dev/null | grep -oE '(arm64|x86_64)' || echo "")
 if echo "$ARCHS" | grep -q "arm64" && echo "$ARCHS" | grep -q "x86_64"; then
   echo "   ✅ Universal binary (arm64 + x86_64)"
 elif echo "$ARCHS" | grep -q "arm64"; then

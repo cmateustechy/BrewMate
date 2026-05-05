@@ -8,16 +8,16 @@ set -e
 if [ -n "$1" ]; then
   PKG_PATH="$1"
 else
-  # Package name format: BrewMate-{version}-{arch}.pkg
+  # Package name format: Pantry-{version}-{arch}.pkg
   PKG_DIR="dist-app/mas-universal"
   
   if [ -d "$PKG_DIR" ]; then
     # Find the most recent .pkg file matching the pattern
-    PKG_PATH=$(find "$PKG_DIR" -name "BrewMate-*-*.pkg" -type f | sort -r | head -1)
+    PKG_PATH=$(find "$PKG_DIR" -name "Pantry-*-*.pkg" -type f | sort -r | head -1)
   fi
   
   if [ -z "$PKG_PATH" ]; then
-    PKG_PATH="dist-app/mas-universal/BrewMate.pkg"  # Fallback for error message
+    PKG_PATH="dist-app/mas-universal/Pantry.pkg"  # Fallback for error message
   fi
 fi
 
@@ -27,7 +27,7 @@ if [ ! -f "$PKG_PATH" ]; then
   echo "Usage: $0 [path-to-pkg]"
   echo ""
   echo "If no path is provided, the script will look for:"
-  echo "  dist-app/mas-universal/BrewMate-*-*.pkg"
+  echo "  dist-app/mas-universal/Pantry-*-*.pkg"
   echo ""
   echo "To build the package, run: npm run build:mas:universal"
   exit 1
