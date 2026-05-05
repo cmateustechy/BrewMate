@@ -393,62 +393,94 @@ export function setupIpcHandlers(): void {
   });
 
   // Handle command execution
-  ipcMain.on('execute-command', (event: IpcMainEvent, command: string) => {
-    console.log('[IPC] Executing command:', command);
+  ipcMain.on('execute-command', async (event: IpcMainEvent, command: unknown) => {
+    try {
+      if (typeof command !== 'string') {
+        console.error('[IPC] Command must be a string');
+        return;
+      }
 
-    const allowedCommands = [
-      'brew update',
-      'brew upgrade',
-      'brew list',
-      'brew doctor',
-      'brew cleanup',
-      'brew cu -a -y --cleanup',
-      'brew update && brew upgrade && brew cu -a -y --cleanup',
-    ];
+      console.log('[IPC] Executing command:', command);
 
-    if (!allowedCommands.includes(command.trim())) {
-      console.error('[IPC] Command not allowed:', command);
-      event.reply('terminal-output', `\nError: Command not allowed. Only the following commands are permitted: ${allowedCommands.join(', ')}\n`);
-      return;
+      type CommandDef = { executable: string; args: string[] };
+      const COMMAND_MAP = new Map<string, CommandDef[]>([
+        ['brew update', [{ executable: 'brew', args: ['update'] }]],
+        ['brew upgrade', [{ executable: 'brew', args: ['upgrade'] }]],
+        ['brew list', [{ executable: 'brew', args: ['list'] }]],
+        ['brew doctor', [{ executable: 'brew', args: ['doctor'] }]],
+        ['brew cleanup', [{ executable: 'brew', args: ['cleanup'] }]],
+        ['brew cu -a -y --cleanup', [{ executable: 'brew', args: ['cu', '-a', '-y', '--cleanup'] }]],
+        ['brew update && brew upgrade && brew cu -a -y --cleanup', [
+          { executable: 'brew', args: ['update'] },
+          { executable: 'brew', args: ['upgrade'] },
+          { executable: 'brew', args: ['cu', '-a', '-y', '--cleanup'] },
+        ]],
+      ]);
+
+      const trimmedCommand = command.trim();
+      const tasks = COMMAND_MAP.get(trimmedCommand);
+
+      if (!tasks) {
+        console.error('[IPC] Command not allowed:', command);
+        const allowedKeys = Array.from(COMMAND_MAP.keys()).join(', ');
+        event.reply('terminal-output', `\nError: Command not allowed. Only the following commands are permitted: ${allowedKeys}\n`);
+        return;
+      }
+
+      let totalOutput = '';
+      logCommand(command);
+      console.log('[IPC] Command logged:', command);
+
+      for (let i = 0; i < tasks.length; i++) {
+        const task = tasks[i];
+
+        const success = await new Promise<boolean>((resolve) => {
+          const shell = spawn(task.executable, task.args, {
+            shell: false,
+            cwd: process.env.HOME || process.cwd(),
+            env: getEnvWithBrewPath(),
+          });
+
+          shell.stdout.on('data', (data) => {
+            const dataStr = data.toString();
+            totalOutput += dataStr;
+            event.reply('terminal-output', dataStr);
+          });
+
+          shell.stderr.on('data', (data) => {
+            const dataStr = data.toString();
+            totalOutput += dataStr;
+            event.reply('terminal-output', dataStr);
+          });
+
+          shell.on('close', (code) => {
+            if (code !== 0) {
+              event.reply('terminal-output', `\nProcess '${task.executable} ${task.args.join(' ')}' exited with code ${code}\n`);
+              resolve(false);
+            } else {
+              resolve(true);
+            }
+          });
+
+          shell.on('error', (err) => {
+            const errMsg = `\nFailed to start process '${task.executable}': ${err.message}\n`;
+            totalOutput += errMsg;
+            event.reply('terminal-output', errMsg);
+            resolve(false);
+          });
+        });
+
+        if (!success) {
+          logCommand(command, totalOutput, 1);
+          return; // Stop executing subsequent tasks if one fails
+        }
+      }
+
+      logCommand(command, totalOutput, 0);
+      event.reply('terminal-output', `\nProcess exited with code 0\n`);
+    } catch (err: any) {
+      console.error('[IPC] Error in execute-command:', err);
+      event.reply('terminal-output', `\nInternal error: ${err.message || 'Unknown error'}\n`);
     }
-
-    let output = '';
-    logCommand(command);
-    console.log('[IPC] Command logged:', command);
-
-    let executable: string;
-    let args: string[];
-
-    if (command.includes('&&')) {
-      executable = 'sh';
-      args = ['-c', command];
-    } else {
-      const parts = command.trim().split(' ');
-      executable = parts[0];
-      args = parts.slice(1);
-    }
-
-    const shell = spawn(executable, args, {
-      shell: false,
-      cwd: process.env.HOME || process.cwd(),
-      env: getEnvWithBrewPath(),
-    });
-
-    shell.stdout.on('data', (data) => {
-      const dataStr = data.toString();
-      output += dataStr;
-      event.reply('terminal-output', dataStr);
-    });
-
-    shell.stderr.on('data', (data) => {
-      const dataStr = data.toString();
-      output += dataStr;
-      event.reply('terminal-output', dataStr);
-    });
-
-    shell.on('close', (code) => {
-      logCommand(command, output, code);
-      event.reply('terminal-output', `\nProcess exited with code ${code}\n`);
-    });
   });
 }
