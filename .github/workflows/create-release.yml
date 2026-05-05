@@ -86,8 +86,8 @@ jobs:
           git -C homebrew-cask checkout -b ${BRANCH_NAME}
 
           # Set new version
-          sed -i '' "s/version .*/version '${VERSION}'/" homebrew-cask/Casks/brewmate.rb
-          sed -i '' "s/sha256 .*/sha256 '${SHA256}'/" homebrew-cask/Casks/brewmate.rb
+          sed -i '' "s/version .*/version '${VERSION}'/" homebrew-cask/Casks/pantry.rb
+          sed -i '' "s/sha256 .*/sha256 '${SHA256}'/" homebrew-cask/Casks/pantry.rb
 
           git -C homebrew-cask add .
           git -C homebrew-cask commit -m "update to version ${VERSION}"

@@ -11,7 +11,7 @@ echo "=========================================="
 echo ""
 
 # Find the DMG (check multiple locations)
-DMG_PATH=$(find dist-app -name "BrewMate-*.dmg" -type f -not -path "*/mas-*/*" | sort -r | head -1)
+DMG_PATH=$(find dist-app -name "Pantry-*.dmg" -type f -not -path "*/mas-*/*" | sort -r | head -1)
 
 if [ ! -f "$DMG_PATH" ]; then
   echo "❌ ERROR: DMG not found. Build first with: npm run build:mac"
@@ -51,11 +51,11 @@ fi
 
 # Method 3: Find by checking /Volumes for recently modified or by name
 if [ -z "$MOUNT_POINT" ] || [ ! -d "$MOUNT_POINT" ]; then
-  # Try to find by volume name (BrewMate)
-  if [ -d "/Volumes/BrewMate" ]; then
-    MOUNT_POINT="/Volumes/BrewMate"
-  elif [ -d "/Volumes/BrewMate 1.0.2" ]; then
-    MOUNT_POINT="/Volumes/BrewMate 1.0.2"
+  # Try to find by volume name (Pantry)
+  if [ -d "/Volumes/Pantry" ]; then
+    MOUNT_POINT="/Volumes/Pantry"
+  elif [ -d "/Volumes/Pantry 1.0.2" ]; then
+    MOUNT_POINT="/Volumes/Pantry 1.0.2"
   else
     # Get the most recently modified volume (likely our DMG)
     MOUNT_POINT=$(find /Volumes -maxdepth 1 -type d -newer "$DMG_PATH" 2>/dev/null | head -1)
@@ -74,12 +74,12 @@ fi
 echo "   Mounted at: $MOUNT_POINT"
 
 # Find the app - it might be directly in the root or in a subdirectory
-APP_PATH="$MOUNT_POINT/BrewMate.app"
+APP_PATH="$MOUNT_POINT/Pantry.app"
 
 if [ ! -d "$APP_PATH" ]; then
   # Try to find it anywhere in the DMG
   echo "   Searching for app bundle..."
-  APP_PATH=$(find "$MOUNT_POINT" -name "BrewMate.app" -type d -maxdepth 3 2>/dev/null | head -1)
+  APP_PATH=$(find "$MOUNT_POINT" -name "Pantry.app" -type d -maxdepth 3 2>/dev/null | head -1)
   
   if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
     echo "❌ App not found in DMG"
@@ -99,7 +99,7 @@ echo ""
 
 # Copy to Applications for testing
 echo "Copying to Applications..."
-INSTALL_PATH="/Applications/BrewMate.app"
+INSTALL_PATH="/Applications/Pantry.app"
 if [ -d "$INSTALL_PATH" ]; then
   echo "   Removing existing installation..."
   rm -rf "$INSTALL_PATH"
@@ -125,7 +125,7 @@ open "$INSTALL_PATH"
 sleep 3
 
 # Check if it's running
-if pgrep -f "BrewMate" > /dev/null; then
+if pgrep -f "Pantry" > /dev/null; then
   echo "   ✅ App is running"
   echo ""
   echo "   Please test the app manually:"
@@ -136,7 +136,7 @@ if pgrep -f "BrewMate" > /dev/null; then
   read -p "   Press Enter when done testing..."
   
   # Kill app
-  pkill -f "BrewMate" || true
+  pkill -f "Pantry" || true
   echo "   ✅ Testing complete"
 else
   echo "   ⚠️  App may not have launched properly"

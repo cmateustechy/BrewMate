@@ -1,9 +1,9 @@
 #!/bin/bash
-# Script to diagnose why BrewMate app won't launch
+# Script to diagnose why Pantry app won't launch
 # Usage: ./scripts/diagnose-app-launch.sh [path-to-app]
 
 echo "=========================================="
-echo "BrewMate Launch Diagnostics"
+echo "Pantry Launch Diagnostics"
 echo "=========================================="
 echo ""
 
@@ -12,24 +12,24 @@ if [ -n "$1" ]; then
   APP_PATH="$1"
 else
   # Try common locations
-  if [ -d "/Applications/BrewMate.app" ]; then
-    APP_PATH="/Applications/BrewMate.app"
-  elif [ -d "dist-app/mas-universal/BrewMate.app" ]; then
-    APP_PATH="dist-app/mas-universal/BrewMate.app"
+  if [ -d "/Applications/Pantry.app" ]; then
+    APP_PATH="/Applications/Pantry.app"
+  elif [ -d "dist-app/mas-universal/Pantry.app" ]; then
+    APP_PATH="dist-app/mas-universal/Pantry.app"
   else
     # Try to find it
-    APP_PATH=$(find . -name "BrewMate.app" -type d 2>/dev/null | head -1)
+    APP_PATH=$(find . -name "Pantry.app" -type d 2>/dev/null | head -1)
     if [ -z "$APP_PATH" ]; then
-      APP_PATH=$(find ~/Desktop ~/Downloads /Applications -name "BrewMate.app" -type d 2>/dev/null | head -1)
+      APP_PATH=$(find ~/Desktop ~/Downloads /Applications -name "Pantry.app" -type d 2>/dev/null | head -1)
     fi
   fi
 fi
 
 if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
-  echo "❌ ERROR: BrewMate.app not found!"
+  echo "❌ ERROR: Pantry.app not found!"
   echo ""
   echo "Please provide the path to the app:"
-  echo "  $0 /path/to/BrewMate.app"
+  echo "  $0 /path/to/Pantry.app"
   echo ""
   echo "Or install it first, then run this script."
   exit 1
@@ -95,15 +95,15 @@ echo ""
 
 # Check for main executable
 EXECUTABLE=""
-if [ -f "$APP_PATH/Contents/MacOS/BrewMate" ]; then
-  EXECUTABLE="$APP_PATH/Contents/MacOS/BrewMate"
+if [ -f "$APP_PATH/Contents/MacOS/Pantry" ]; then
+  EXECUTABLE="$APP_PATH/Contents/MacOS/Pantry"
   echo "✓ Main executable found: $EXECUTABLE"
 elif [ -f "$APP_PATH/Contents/MacOS/Electron" ]; then
   EXECUTABLE="$APP_PATH/Contents/MacOS/Electron"
   echo "✓ Main executable found: $EXECUTABLE"
 else
   echo "❌ ERROR: Main executable not found!"
-  echo "   Expected: $APP_PATH/Contents/MacOS/BrewMate"
+  echo "   Expected: $APP_PATH/Contents/MacOS/Pantry"
   echo "   Or: $APP_PATH/Contents/MacOS/Electron"
   ls -la "$APP_PATH/Contents/MacOS/" 2>/dev/null || echo "   MacOS directory doesn't exist!"
 fi
@@ -183,18 +183,18 @@ echo "4. System Logs (Recent Errors)"
 echo "=========================================="
 echo ""
 
-# Get recent system logs related to BrewMate
-echo "Checking system logs for BrewMate errors (last 5 minutes)..."
+# Get recent system logs related to Pantry
+echo "Checking system logs for Pantry errors (last 5 minutes)..."
 echo ""
 
 # Try to get logs using log command (macOS 10.12+)
 if command -v log &> /dev/null; then
-  echo "Recent log entries for BrewMate:"
-  log show --predicate 'process == "BrewMate" OR eventMessage contains "BrewMate"' --last 5m --style compact 2>/dev/null | tail -20 || echo "  No recent log entries found"
+  echo "Recent log entries for Pantry:"
+  log show --predicate 'process == "Pantry" OR eventMessage contains "Pantry"' --last 5m --style compact 2>/dev/null | tail -20 || echo "  No recent log entries found"
   echo ""
   
   echo "Recent system errors:"
-  log show --predicate 'eventMessage contains "BrewMate" AND (messageType == error OR messageType == fault)' --last 5m --style compact 2>/dev/null | tail -20 || echo "  No error entries found"
+  log show --predicate 'eventMessage contains "Pantry" AND (messageType == error OR messageType == fault)' --last 5m --style compact 2>/dev/null | tail -20 || echo "  No error entries found"
   echo ""
 fi
 
@@ -205,7 +205,7 @@ echo "  /Library/Logs/DiagnosticReports/"
 echo ""
 
 # Check for crash reports
-CRASH_REPORTS=$(find ~/Library/Logs/DiagnosticReports /Library/Logs/DiagnosticReports -name "*BrewMate*" -type f -mtime -1 2>/dev/null | head -5)
+CRASH_REPORTS=$(find ~/Library/Logs/DiagnosticReports /Library/Logs/DiagnosticReports -name "*Pantry*" -type f -mtime -1 2>/dev/null | head -5)
 if [ -n "$CRASH_REPORTS" ]; then
   echo "⚠️  Found recent crash reports:"
   echo "$CRASH_REPORTS" | while read -r report; do
@@ -312,7 +312,7 @@ echo "  chmod +x \"$EXECUTABLE\""
 echo ""
 echo "To view full system logs:"
 echo "  open -a Console"
-echo "  Then search for 'BrewMate'"
+echo "  Then search for 'Pantry'"
 echo ""
 
 echo "=========================================="

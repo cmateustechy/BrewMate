@@ -352,7 +352,7 @@ function setupEventListeners(): void {
   electronAPI.onLogPath((logFilePath: string) => {
     console.log('[Renderer] Log file location:', logFilePath);
     if (logPath) {
-      logPath.textContent = `Logs: /Users/pantry/.pantry/commands.log`;
+      logPath.textContent = `Logs: ${logFilePath}`;
     }
   });
 
