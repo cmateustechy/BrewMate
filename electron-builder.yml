@@ -1,6 +1,7 @@
 directories:
   output: dist-app
   buildResources: build
+afterPack: scripts/after-pack.js
 
 appId: com.app.pantry
 productName: Pantry
@@ -42,6 +43,7 @@ mac:
   hardenedRuntime: true
   gatekeeperAssess: false
   minimumSystemVersion: '12.0'
+  identity: null
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.inherit.plist
   artifactName: ${productName}-${version}-${arch}.${ext}

@@ -1,6 +1,7 @@
 import { ipcMain, IpcMainEvent, app } from 'electron';
 import { spawn } from 'child_process';
 import * as path from 'path';
+import * as fs from 'fs';
 import * as crypto from 'crypto';
 import { fetchJSON } from '../utils/fetchData';
 import { loadFromCache, saveToCache } from '../utils/cache';
@@ -96,44 +97,46 @@ function runBrewCommand(
             return;
           }
 
-          // Re-run with sudo -S brew <args>
-          const sudoArgs = ['-S', 'brew', ...args];
-          const sudoCommandString = `sudo -S brew ${args.join(' ')}`;
-          let sudoOutput = '';
-          logCommand(sudoCommandString);
-
-          event.reply(
-            'terminal-output',
-            `\n🔑 Re-running with administrator privileges…\n`,
-          );
-
-          const sudoChild = spawn('sudo', sudoArgs, {
+          // Use an askpass helper to supply the password to Homebrew's internal sudo
+          event.reply('terminal-output', `\n🔑 Re-running with administrator privileges…\n`);
+          
+          const askpassPath = path.join(app.getPath('userData'), 'askpass.sh');
+          if (!fs.existsSync(askpassPath)) {
+            fs.writeFileSync(askpassPath, '#!/bin/bash\necho "$BREWMATE_SUDO_PASS"\n', { mode: 0o755 });
+          }
+          
+          let retryOutput = '';
+          logCommand(commandString);
+          
+          const retryEnv = {
+            ...env,
+            SUDO_ASKPASS: askpassPath,
+            BREWMATE_SUDO_PASS: password
+          };
+          
+          const retryChild = spawn('brew', args, {
             shell: false,
             cwd,
-            env,
+            env: retryEnv,
           });
-
-          // Write password + newline to sudo's stdin
-          sudoChild.stdin.write(`${password}\n`);
-          sudoChild.stdin.end();
-
-          sudoChild.stdout.on('data', (d: Buffer) => {
+          
+          retryChild.stdout.on('data', (d: Buffer) => {
             const t = d.toString();
-            sudoOutput += t;
+            retryOutput += t;
             event.reply('terminal-output', t);
           });
-
-          sudoChild.stderr.on('data', (d: Buffer) => {
+          
+          retryChild.stderr.on('data', (d: Buffer) => {
             const t = d.toString();
-            sudoOutput += t;
-            // Filter out the sudo password prompt echo from visible output
+            retryOutput += t;
+            // Filter out the askpass echo and sudo prompt
             if (!SUDO_PASSWORD_REGEX.test(t) && !t.startsWith('Password:')) {
               event.reply('terminal-output', t);
             }
           });
-
-          sudoChild.on('close', (code) => {
-            logCommand(sudoCommandString, sudoOutput, code);
+          
+          retryChild.on('close', (code) => {
+            logCommand(commandString, retryOutput, code);
             event.reply(completeChannel, {
               appName,
               success: code === 0,
@@ -430,43 +433,85 @@ export function setupIpcHandlers(): void {
       return;
     }
 
-    let output = '';
-    logCommand(command);
-    console.log('[IPC] Command logged:', command);
+    const runCmd = (isRetry = false, password?: string) => {
+      let output = '';
+      logCommand(command);
+      console.log('[IPC] Command logged:', command);
 
-    let executable: string;
-    let args: string[];
+      let executable: string;
+      let args: string[];
 
-    if (command.includes('&&')) {
-      executable = 'sh';
-      args = ['-c', command];
-    } else {
-      const parts = command.trim().split(' ');
-      executable = parts[0];
-      args = parts.slice(1);
-    }
+      if (command.includes('&&')) {
+        executable = 'sh';
+        args = ['-c', command];
+      } else {
+        const parts = command.trim().split(' ');
+        executable = parts[0];
+        args = parts.slice(1);
+      }
 
-    const shell = spawn(executable, args, {
-      shell: false,
-      cwd: process.env.HOME || process.cwd(),
-      env: getEnvWithBrewPath(),
-    });
+      const runEnv = password ? {
+        ...getEnvWithBrewPath(),
+        SUDO_ASKPASS: path.join(app.getPath('userData'), 'askpass.sh'),
+        BREWMATE_SUDO_PASS: password
+      } : getEnvWithBrewPath();
 
-    shell.stdout.on('data', (data) => {
-      const dataStr = data.toString();
-      output += dataStr;
-      event.reply('terminal-output', dataStr);
-    });
+      const shell = spawn(executable, args, {
+        shell: false,
+        cwd: process.env.HOME || process.cwd(),
+        env: runEnv,
+      });
 
-    shell.stderr.on('data', (data) => {
-      const dataStr = data.toString();
-      output += dataStr;
-      event.reply('terminal-output', dataStr);
-    });
+      let sudoDetected = false;
 
-    shell.on('close', (code) => {
-      logCommand(command, output, code);
-      event.reply('terminal-output', `\nProcess exited with code ${code}\n`);
-    });
+      const handleData = (data: Buffer) => {
+        const dataStr = data.toString();
+        output += dataStr;
+        event.reply('terminal-output', dataStr);
+
+        if (!isRetry && !sudoDetected && SUDO_PASSWORD_REGEX.test(dataStr)) {
+          sudoDetected = true;
+          shell.kill();
+
+          event.reply(
+            'terminal-output',
+            '\n⚠️  Administrator password required. Please enter your password in the dialog…\n',
+          );
+
+          requestSudoPassword(event, 'Brew Command')
+            .then((password) => {
+              if (!password) {
+                event.reply('terminal-output', '\n❌ Operation cancelled by user.\n');
+                event.reply('terminal-output', '\nProcess exited with code 1\n');
+                return;
+              }
+
+              event.reply('terminal-output', `\n🔑 Re-running with administrator privileges…\n`);
+              
+              const askpassPath = path.join(app.getPath('userData'), 'askpass.sh');
+              if (!fs.existsSync(askpassPath)) {
+                fs.writeFileSync(askpassPath, '#!/bin/bash\necho "$BREWMATE_SUDO_PASS"\n', { mode: 0o755 });
+              }
+              
+              runCmd(true, password);
+            })
+            .catch(() => {
+              event.reply('terminal-output', '\n❌ Password request failed or cancelled.\n');
+              event.reply('terminal-output', '\nProcess exited with code 1\n');
+            });
+        }
+      };
+
+      shell.stdout.on('data', handleData);
+      shell.stderr.on('data', handleData);
+
+      shell.on('close', (code) => {
+        if (sudoDetected) return;
+        logCommand(command, output, code);
+        event.reply('terminal-output', `\nProcess exited with code ${code}\n`);
+      });
+    };
+
+    runCmd();
   });
 }
